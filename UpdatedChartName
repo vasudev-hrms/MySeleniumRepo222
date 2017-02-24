@@ -12,10 +12,6 @@ var content= '\n\
   </head>\n\
   <script>\n\
 \n\
-  	google.setOnLoadCallback(loadChart);\n\
-\n\
-    var wrapper;\n\
-	\n\
 	$.urlParam = function(name){\n\
     		var results = new RegExp(\'[\\?&]\' + name + \'=([^&#]*)\').exec(window.location.href);\n\
     		if (results==null){\n\
@@ -36,7 +32,9 @@ var content= '\n\
     	}\n\
     	return vars;\n\
 	}\n\
-		\n\
+   \n\
+    var socketURL = \"wss://api-test.apstrata.com/\"; //It is always the same it doesn\'t vary with subdomain\n\
+	\n\
 		var baseURL = window.location.origin + window.location.pathname.substring(0,window.location.pathname.indexOf(\"UpdatedChartName\"))\n\
    		var token = $.urlParam(\'auth_token\')\n\
 	\n\
@@ -47,63 +45,103 @@ var content= '\n\
 		   params[param] = $.urlParam(param);\n\
 		}\n\
 	});\n\
-	\n\
-	var options = {\n\
-		type: \"POST\",\n\
-		url: baseURL + \"SourceScript\",\n\
-		success: function() {},\n\
-		failure: function() {},\n\
-		dataType: \"json\",\n\
-		data: params\n\
-	};\n\
-	\n\
-	if(token) {\n\
-		options[\"headers\"] = { \"Authorization\":  \"bearer \" + token };\n\
-	}\n\
 \n\
- 	function loadChart() {\n\
+	var scriptName = \"SourceScript\";\n\
+    \n\
+	var subscribeChannel = \"\";\n\
+	var dataTag = \"\";\n\
+\n\
+    \n\
+    //Instantiate Chart with configuration\n\
+    google.setOnLoadCallback(loadChart);\n\
+   \n\
+	 //Chart Controller\n\
+     var wrapper;\n\
+\n\
+     var instantiateWsClient = function() {\n\
+       var client = new WebSocket(socketURL+token);\n\
+\n\
+       client.onopen = function (event) {\n\
+           	//Start subscribing to the data sent over the channel to update chart\n\
+        	if(subscribeChannel && subscribeChannel != \"\") {\n\
+              	client.send(JSON.stringify({\n\
+                	\"method\":\"Subscribe\",\n\
+                    \"params\":{\n\
+                        \"channel\": subscribeChannel\n\
+                    }\n\
+            	}));\n\
+        	}\n\
+           \n\
+           //Load initial data\n\
+           var tmp = {\n\
+               \"method\": scriptName,\n\
+               \"params\": {\"body\": JSON.stringify(params)}\n\
+            };\n\
+ 			if(dataTag && dataTag != \"\") {\n\
+				tmp[\"id\"] = dataTag;\n\
+			}\n\
+            client.send(JSON.stringify(tmp));\n\
+        }\n\
+         \n\
+        client.onmessage = function(event) {\n\
+        	var message = JSON.parse(event.data);\n\
+            //message has an id with the dataTag we are expecting || we are consuming all data received over the channel we are subscribed to\n\
+            //message.id.split(\"-\")[1]  this is the id format of of the message returned only when calling a method with scriptName over socket\n\
+            //which is socketid-(dataTag) in case we have a dataTag\n\
+            if((message.id && (message.id == dataTag || message.id.split(\"-\")[1] == dataTag)) || (!dataTag || dataTag == \"\")) {\n\
+              consumeData(message.result);\n\
+            } \n\
+            console.log(\"Socket Data \", message);\n\
+        }\n\
+\n\
+     }\n\
+     \n\
+  	 var consumeData = function(data) {\n\
+		 //Only handle messages received of type object or array as the google charts expect\n\
+		if(data && (data.constructor === [].constructor || data.constructor === {}.constructor)){\n\
+              setDataSource(data);\n\
+              //Remove loading vm.waiting = false;\n\
+              $(\".loading-google-frame\").hide();\n\
+        	  $(\"#scriptrChart\").show();\n\
+         } \n\
+	 }\n\
+     \n\
+      var setDataSource = function (data) {\n\
+        try {\n\
+          wrapper.setDataTable(data);\n\
+          if(wrapper.getChartType() != null) {\n\
+          	wrapper.draw();\n\
+        	}\n\
+        } catch(error) {\n\
+          console.log(\"Invalid chart data received over socket\", data);\n\
+        }\n\
+      }\n\
+      \n\
+      var drawChart = function () {\n\
+        wrapper.draw();\n\
+      }\n\
+      \n\
+      function loadChart() {\n\
 		var chart_content = {\"options\":{\"title\":\"UpdatedTitle\",\"hAxis\":{\"title\":\"Time of Day\",\"textStyle\":{\"fontSize\":12,\"color\":\"#EE8300\",\"bold\":true,\"italic\":false},\"titleTextStyle\":{\"fontSize\":14,\"color\":\"#777\",\"bold\":true,\"italic\":false},\"useFormatFromData\":true,\"minValue\":null,\"maxValue\":null,\"viewWindow\":null,\"viewWindowMode\":null},\"vAxis\":{\"title\":\"Axis title\",\"textStyle\":{\"fontSize\":12,\"color\":\"#EE8300\",\"bold\":false,\"italic\":false},\"titleTextStyle\":{\"fontSize\":14,\"color\":\"#777\",\"bold\":true,\"italic\":false}},\"colors\":[\"#EE8300\",\"#777\"],\"vAxes\":[{\"title\":null,\"minValue\":null,\"maxValue\":null,\"useFormatFromData\":true,\"viewWindow\":{\"max\":null,\"min\":null}},{\"useFormatFromData\":true,\"viewWindow\":{\"max\":null,\"min\":null},\"minValue\":null,\"maxValue\":null}],\"legacyScatterChartLabels\":true,\"isStacked\":false,\"booleanRole\":\"certainty\",\"legend\":\"right\",\"width\":600,\"height\":371},\"state\":{},\"view\":{\"columns\":null,\"rows\":null},\"isDefaultVisualization\":true,\"chartType\":\"ColumnChart\"};\n\
 		delete chart_content.containerId;\n\
 		chart_content[\"containerId\"] = \"scriptrChart\"\n\
    		wrapper = new google.visualization.ChartWrapper(chart_content);\n\
-		$.ajax(options).done(function(response) {\n\
-		  	  	$(\".loading-google-frame\").hide();\n\
-				setDataSource(response.response.result);\n\
-				$(\"#scriptrChart\").show();\n\
-		 	 })\n\
-		 	 .fail(function(response ) {\n\
-		 		var out = \"\";\n\
-			if(response.status == 0 && response.statusText == \"error\" && response.readyState == 0 && response.responseText == \"\"){\n\
-				out += \"An error has occurred. This is most likely a cross-domain issue. In case you modified the response object in your script, try adding response.addHeaders(configuration.crossDomainHeaders) to your code.\";\n\
-			}else{\n\
-				var output = response;\n\
-				if(response.responseJSON){\n\
-					out += \"Your chart data source script returned a \"+ response.responseJSON.response.metadata.errorCode + \" error.\"\n\
-				}\n\
-			}\n\
-			$(\"#scriptrChart\").html(out);\n\
-				$(\".loading-google-frame\").hide();\n\
-				$(\"#scriptrChart\").show();\n\
-		  	})\n\
-		  	.always(function(data) {\n\
-			});\n\
-  	}\n\
-	\n\
-    function setDataSource(data) {\n\
-	  	wrapper.setDataTable(data);\n\
-	  	if(wrapper.getChartType() != null) {\n\
-	  		wrapper.draw();\n\
-	  	}\n\
-    }\n\
-\n\
-    function drawChart() {\n\
-        wrapper.draw();\n\
-    }\n\
-\n\
+        if(!token) {\n\
+            var output = \"Parameter your auth_token is required when using real time communication.\";\n\
+            $(\"#scriptrChart\").html(output);\n\
+            $(\".loading-google-frame\").hide();\n\
+            $(\"#scriptrChart\").show()\n\
+            return;\n\
+        } else {\n\
+             instantiateWsClient();\n\
+        }\n\
+       \n\
+      }\n\
     </script>\n\
   <body>\n\
 	  <div style=\"display: none;\" id=\"scriptrChart\"></div>\n\
       <div class=\'loading-google-frame\' style=\"padding: 100px;\"><i class=\'fa fa-spinner fa-spin fa-3x\'></i></div>\n\
   </body>\n\
 </html>\n\
+\n\
 ';  response.write(content);response.close();
