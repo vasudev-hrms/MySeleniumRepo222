@@ -1,0 +1,51 @@
+var pubsub = require("pubsub");
+var channel = "jasmine";
+var loggerMod=  require("../lib/Logger");
+var logger =new loggerMod.Logger();
+/**
+   Prints jasmine events into the console in a human friendly way.
+**/
+function Reporter(options) {
+  var name = options.name;
+  this.jasmineStarted = function(options) {
+    var log = "Jasmine started [ " + name + " ] Total Specs " + options.totalSpecsDefined;
+    logger.info(log);
+  };
+  this.suiteStarted = function(message) {
+    var log = "[" + name +  "] [Suite] [" + message.id +  "] " + message.fullName + " Started ";
+    logger.info(log);
+  };
+  this.suiteDone = function(message) {
+    var log = "[" + name + "] [Suite] [" + message.id +  "] " + message.fullName + " Done ";
+    logger.info(log);
+  };
+  this.specStarted = function(message) {
+    var log =  "[" + name + "] [Spec] [" + message.id +  "] " + message.fullName + " Started ";
+    logger.info(log);
+  }; 
+  this.specDone = function(message) {
+    for(var i=0;i< message.passedExpectations.length ;i++){
+      var expectation = message.passedExpectations[i];
+      var  log  = "[" + name + "] [Spec] [" + message.id +  "] [" + (expectation.passed?"success":"failure") + "] " + expectation.matcherName;
+      logger.info(log);
+    }
+    for(var i=0;i< message.failedExpectations.length ;i++){
+      var expectation = message.failedExpectations[i];
+      var  log = "[" + name + "] [Spec] [" + message.id +  "] [" + (expectation.passed?"success":"failure") + "] " + expectation.matcherName + " " + expectation.message;
+      if(message.stack != null && message.stack != ""){
+        log += "\n" + message.stack ;
+      }
+      logger.error(log);
+    }
+    if(message.status != "failed"){
+      logger.info("[" +name +  "] [Spec] [" + message.id +  "] [success] " + message.fullName + " Done ");
+    }else{
+      logger.error("[" +name +  "] [Spec] [" + message.id +  "] [failure] " + message.fullName + " Done ");
+    }
+  };
+  this.jasmineDone = function(doneResult) {
+    var log = "Jasmine Finished [ " + name + " ] ";
+    logger.info(log);
+  };
+  return this;
+}

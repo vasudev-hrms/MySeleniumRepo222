@@ -1,0 +1,54 @@
+var pubsub = require("pubsub");
+var channel = "jasmine";
+
+/**
+  Publishes the jasmine json events to a channel,  all you have to do is subscribe a script to this channel that knows how to create a ticket on some third party ticketing system such as JIRA /ZOHO ... Auto reporting bugs to developers. You can cron the test scripts then run nightly builds and detect issues on the go. 
+
+**/
+function Reporter(options) {
+    
+    var name = options.name;
+    
+
+    this.jasmineStarted = function(options) {
+      
+        pubsub.publish(channel, this._wrap(options,"jasmineStarted"));
+    };
+
+
+    this.suiteStarted = function(result) {
+        pubsub.publish(channel, this._wrap(result,"suiteStarted"));
+    };
+
+    this.suiteDone = function(result) {
+ 		pubsub.publish(channel, this._wrap(result,"suiteDone"));
+
+    };
+
+    this.specStarted = function(result) {
+		pubsub.publish(channel, this._wrap(result,"specStarted"));
+
+    }; 
+
+    this.specDone = function(result) {
+      pubsub.publish(channel, this._wrap(result,"specDone"));
+
+    };
+
+    this.jasmineDone = function(doneResult) {
+ 	  pubsub.publish(channel, this._wrap(doneResult,"jasmineDone"));
+    };
+	
+    this._wrap = function(message,event){
+      if(name)
+       		message.name = name
+       message.event = event;
+       return message;
+    }
+  
+    return this;
+  }
+
+
+
+

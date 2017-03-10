@@ -1,0 +1,71 @@
+var jasmine = require("../boot");
+var playerMod = require("./Player");
+var songMod = require("./Song");
+
+/**
+This script shows you how you can use jasmine within scriptr, all you have to do is require the jasmine boot and then you can call all the jasmine functions on the library's reference.
+
+**/
+
+jasmine.describe("Player", function() {
+  var player;
+  var song;
+  jasmine.beforeAll(function(){
+
+  }); 
+  
+  jasmine.beforeEach(function() {
+    player = new playerMod.Player();
+    song = new songMod.Song();
+  });
+
+  jasmine.it("should be able to play a Song", function() {
+    player.play(song);
+    jasmine.expect(player.currentlyPlayingSong).toEqual("SKJKJD");
+   });
+
+  jasmine.describe("when song has been paused", function() {
+    jasmine.beforeEach(function() {
+      player.play(song);
+      player.pause();
+    });
+
+    jasmine.it("should indicate that the song is currently paused", function() {
+      jasmine.expect(player.isPlaying).toBeTruthy();
+ 
+    });
+
+    jasmine.it("should be possible to resume", function() {
+      player.resume();
+     // console.log("possible to resume");
+      jasmine.expect(player.isPlaying).toBeTruthy();
+      jasmine.expect(player.currentlyPlayingSong).toEqual(song);
+    });
+  });
+
+  
+
+  //demonstrates use of expected exceptions
+  jasmine.describe("#resume", function() {
+    jasmine.it("should throw an exception if song is already playing", function() {
+     // console.log("resume");
+      player.play(song);
+
+      jasmine.expect(function() {
+        player.resume();
+      }).toThrowError("song is already playing");
+    });
+  });
+});
+
+
+  
+jasmine.execute();
+
+
+
+
+
+
+
+  

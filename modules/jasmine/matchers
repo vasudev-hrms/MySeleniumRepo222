@@ -1,0 +1,75 @@
+ 
+
+var matchers =  {
+  
+  
+  "isSuccessful": function(util, customEqualityTesters) {
+  
+  	return {
+    
+     compare: function(actual, expected) {
+        if (expected === undefined) {
+          expected = '';
+        }
+        var result = {}; 
+        
+        result.pass = (actual.metadata.status == "success") ;
+        result.message = "Expected script to have executed successfully ";
+        return result;
+      }
+    }
+  },
+  
+  "hasErrorCode":function(util, customEqualityTesters) {
+  
+  	return {
+    
+     compare: function(actual, expected) {
+        if (expected === undefined) {
+          expected = '';
+        }
+        var result = {}; 
+        
+        result.pass = (actual.metadata.errorCode == expected) ;
+        result.message = "Expected Error code  " + expected + " but received " + actual.metadata.errorCode +  ".";
+        return result;
+      }
+    }
+  },
+
+  "hasErrorDetail":function(util, customEqualityTesters) {
+  
+  	 return {
+    
+     compare: function(actual, expected) {
+        if (expected === undefined) {
+          expected = '';
+        }
+        var result = {}; 
+        
+        result.pass = (actual.metadata.errorDetail == expected) ;
+        result.message = "Expected Error Detail  " + expected + " but received " + actual.metadata.errorDetail +  ".";
+        return result;
+      }
+    }
+  },
+  
+  "hasStatusCode":function(util, customEqualityTesters) {
+
+    return {
+   
+         compare: function(actual, expected) {
+            if (expected === undefined) {
+              expected = '';
+            }
+            var result = {};
+
+            result.pass = (actual.metadata.statusCode == expected) ;
+            result.message = "Expected Status code  " + expected + " but received " + actual.metadata.statusCode +  ".";
+            return result;
+          }
+     }
+ }
+  
+};   
+   

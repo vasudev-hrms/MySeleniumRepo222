@@ -1,0 +1,73 @@
+var log = require("log");
+var messaging = require("pubsub")
+
+function Logger(channel) {
+  this.levelIndex = 4
+  this.level = "DEBUG"
+  
+  this.setLogLevel = function (level) {
+    var levels = {DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3}
+    this.level = level
+    this.levelIndex = levels[level]
+  }
+  
+  var msg = function(args) {
+    var s="" 
+    for (var i=0; i<args.length; i++) {
+      var obj = args[i]
+      if (obj !== null && typeof obj === 'object') s+=JSON.stringify(obj,null,"\t")+"\t"; else s+=obj+"\t"
+    }
+    return s
+  }
+  
+   
+function template(msg) {
+   return "<div class='message'><span class='timestamp'>"+msg.timestamp+"</span><div class='level'>"+logLevel[msg.level]+
+          "</div><span class='messageTxt txt"+msg.level+"'>"+syntaxHighlight(msg.txt)+"</span></div>" 
+}
+  
+  var logLevels = ['debug', 'info', 'warn', 'error']
+
+  for (var i=0; i<logLevels.length; i++) {
+    this[logLevels[i]] = (function(level) {
+      return function() {
+      	
+        var logTxt = msg(arguments)
+        console[logLevels[level]](logTxt)
+        
+        var msgTxt = {type: logLevels[level], timestamp: new Date(), level: level, txt: logTxt};
+
+        if(channel != null && channel.trim() != "")
+        	messaging.publish(channel, template(msgTxt))
+
+        log.setLevel("INFO") //levels are ERROR | WARN | INFO | DEBUG | OFF
+        log[logLevels[level]](logTxt);
+      }
+    })(i)
+ }
+  
+function template(msg) {
+ 	return "<div class='message'><span class='timestamp'>"+msg.timestamp+"</span><span class='level'>"+logLevels[msg.level]+
+          "</span><span class='messageTxt txt"+logLevels[msg.level]+"'>"+msg.txt+"</span></div>" 
+}
+  
+  
+  this.startProfiling = function() {
+    this.startTime = (new Date()).getTime()
+  }
+
+  this.getLapse = function() {
+    var lapse = (new Date()).getTime()-this.startTime
+    this.debug(lapse + "ms passed since startProfiling was invoked")
+  }
+  
+  this.dir = function(obj) {
+    var s = "this is object"
+    for (var k in obj) {
+      s += msg(k+" ---> "+obj[k])
+    }
+    console.log(s)
+  }
+  
+ return this;
+}
